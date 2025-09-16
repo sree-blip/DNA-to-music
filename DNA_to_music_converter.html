@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DNA to Music Converter</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Poppins', sans-serif;
+      color:black;
+    }
+
+    /* Animated Gradient Background */
+    body {
+      background: linear-gradient(-45deg, #ff9a9e, #fad0c4, #a1c4fd, #c2e9fb);
+      background-size: 400% 400%;
+      animation: gradientBG 15s ease infinite;
+    }
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    #background {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+    }
+
+    #content {
+      position: relative;
+      text-align: center;
+      padding: 40px;
+      z-index: 1;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 20px;
+      text-shadow: 0 0 10px #00eaff, 0 0 20px #00eaff, 0 0 40px #00eaff;
+    }
+
+    textarea {
+      width: 80%;
+      height: 100px;
+      border-radius: 15px;
+      border: 2px solid #fff;
+      padding: 10px;
+      font-size: 16px;
+      outline: none;
+      background: rgba(255,255,255,0.1);
+      color:black;
+      transition: 0.3s;
+    }
+    textarea:focus {
+      border-color: #ff6ec7;
+      box-shadow: 0 0 15px #ff6ec7;
+    }
+
+    button {
+      background: linear-gradient(45deg, #ff6ec7, #7366ff);
+      border: none;
+      color: white;
+      padding: 12px 24px;
+      margin: 10px 5px 0 5px;
+      font-size: 16px;
+      border-radius: 25px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.3s;
+    }
+    button:hover {
+      transform: scale(1.1);
+      box-shadow: 0px 0px 20px rgba(255, 110, 199, 0.7);
+    }
+
+    #progressBarContainer {
+      width: 80%;
+      background-color: rgba(255,255,255,0.2);
+      height: 20px;
+      margin: 20px auto;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    #progressBar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #ff6ec7, #7366ff, #00eaff, #00ff99);
+      background-size: 200% 200%;
+      animation: progressAnim 3s linear infinite;
+    }
+    @keyframes progressAnim {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 200% 50%; }
+    }
+
+    #speedControl {
+      width: 300px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Background Canvas -->
+  <canvas id="background"></canvas>
+
+  <!-- Main Content -->
+  <div id="content">
+    <h1>DNA to Music Converter</h1>
+    <p>Enter your DNA sequence (A, T, G, C):</p>
+    <textarea id="dnaInput" placeholder="e.g., ATGCGTAC"></textarea><br>
+
+    <button onclick="playMusic()">Play</button>
+    <button onclick="pauseMusic()">Pause</button>
+    <button onclick="resumeMusic()">Resume</button>
+
+    <div id="progressBarContainer">
+      <div id="progressBar"></div>
+    </div>
+
+    <p>Playback Speed: <span id="speedValue">1.0</span>x</p>
+    <input type="range" id="speedControl" min="0.1" max="3" value="1" step="0.1">
+  </div>
+
+  <!-- Three.js -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+
+  <script>
+    // ===== 3D DNA Background =====
+    const canvas = document.getElementById("background");
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({canvas, alpha:true});
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    // Neon materials for DNA
+    const materialA = new THREE.MeshBasicMaterial({color: 0xff6ec7});
+    const materialT = new THREE.MeshBasicMaterial({color: 0x7366ff});
+    const materialG = new THREE.MeshBasicMaterial({color: 0x00eaff});
+    const materialC = new THREE.MeshBasicMaterial({color: 0x00ff99});
+    const geometry = new THREE.SphereGeometry(0.08, 16, 16);
+
+    let dnaGroup = new THREE.Group();
+    function createDNA(xOffset) {
+      let dna = new THREE.Group();
+      for (let i = 0; i < 100; i++) {
+        let angle = i * 0.3;
+        let y = i * 0.15 - 7.5;
+
+        let baseTypes = [materialA, materialT, materialG, materialC];
+        let sphere1 = new THREE.Mesh(geometry, baseTypes[i % 4]);
+        sphere1.position.set(Math.cos(angle) * 0.7 + xOffset, y, Math.sin(angle) * 0.7);
+
+        let sphere2 = new THREE.Mesh(geometry, baseTypes[(i+2) % 4]);
+        sphere2.position.set(Math.cos(angle + Math.PI) * 0.7 + xOffset, y, Math.sin(angle + Math.PI) * 0.7);
+
+        dna.add(sphere1);
+        dna.add(sphere2);
+      }
+      return dna;
+    }
+
+    for (let i = -3; i <= 3; i++) {
+      dnaGroup.add(createDNA(i * 1.5));
+    }
+    scene.add(dnaGroup);
+    camera.position.z = 8;
+
+    function animate() {
+      requestAnimationFrame(animate);
+      dnaGroup.rotation.y += 0.002;
+      dnaGroup.rotation.x += 0.001;
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth/window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // ===== DNA Music Logic =====
+    const dnaToNote = { 'A': 261.63, 'T': 293.66, 'G': 329.63, 'C': 349.23 };
+    let dnaToMaterial = { 'A': materialA, 'T': materialT, 'G': materialG, 'C': materialC };
+
+    let audioCtx;
+    let schedule = [];
+    let noteDuration = 0.5;
+    let startTime = 0;
+    let pausedTime = 0;
+    let elapsedBeforePause = 0;
+    let progressInterval;
+    let speed = 1;
+    let dnaSequence = "";
+
+    const speedSlider = document.getElementById('speedControl');
+    const speedDisplay = document.getElementById('speedValue');
+
+    speedSlider.addEventListener('input', () => {
+      speed = parseFloat(speedSlider.value);
+      speedDisplay.textContent = speed.toFixed(1);
+    });
+
+    function pulseBase(base) {
+      const material = dnaToMaterial[base];
+      if (!material) return;
+      let originalColor = material.color.clone();
+      material.color.set(0xffffff); // flash white
+      setTimeout(() => {
+        material.color.copy(originalColor);
+      }, 200);
+    }
+
+    function playMusic() {
+      dnaSequence = document.getElementById('dnaInput').value.toUpperCase();
+      if (!dnaSequence) { alert("Please enter a DNA sequence!"); return; }
+
+      if (audioCtx) audioCtx.close();
+      clearInterval(progressInterval);
+
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      schedule = [];
+      startTime = audioCtx.currentTime;
+      elapsedBeforePause = 0;
+
+      noteDuration = 0.5 / speed;
+      let currentTime = startTime;
+
+      for (let i = 0; i < dnaSequence.length; i++) {
+        const base = dnaSequence[i];
+        const freq = dnaToNote[base];
+        if (freq) {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.2, currentTime);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+
+          osc.start(currentTime);
+          osc.stop(currentTime + noteDuration);
+
+          setTimeout(() => { pulseBase(base); }, (currentTime - startTime) * 1000);
+
+          schedule.push({osc, start: currentTime, duration: noteDuration});
+          currentTime += noteDuration;
+        }
+      }
+
+      updateProgressBar(dnaSequence.length * noteDuration);
+    }
+
+    function pauseMusic() {
+      if (!audioCtx) return;
+      pausedTime = audioCtx.currentTime;
+      elapsedBeforePause += pausedTime - startTime;
+      schedule.forEach(item => { try { item.osc.stop(); } catch(e) {} });
+      clearInterval(progressInterval);
+    }
+
+    function resumeMusic() {
+      if (!audioCtx || !dnaSequence) return;
+
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      noteDuration = 0.5 / speed;
+      startTime = audioCtx.currentTime;
+      let currentTime = startTime;
+      schedule = [];
+
+      for (let i = 0; i < dnaSequence.length; i++) {
+        const base = dnaSequence[i];
+        const freq = dnaToNote[base];
+        const noteStart = i * noteDuration;
+        if (noteStart >= elapsedBeforePause && freq) {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.2, currentTime);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+
+          osc.start(currentTime);
+          osc.stop(currentTime + noteDuration);
+
+          setTimeout(() => { pulseBase(base); }, (currentTime - startTime) * 1000);
+
+          schedule.push({osc, start: currentTime, duration: noteDuration});
+          currentTime += noteDuration;
+        }
+      }
+
+      const totalDuration = dnaSequence.length * noteDuration;
+      updateProgressBar(totalDuration, elapsedBeforePause);
+    }
+
+    function updateProgressBar(totalDuration, startElapsed=0){
+      const progressBar = document.getElementById('progressBar');
+      let elapsed = startElapsed;
+      progressInterval = setInterval(()=>{
+        elapsed += 0.05;
+        const progress = Math.min((elapsed / totalDuration) * 100, 100);
+        progressBar.style.width = progress + '%';
+        if(progress >= 100) clearInterval(progressInterval);
+      }, 50);
+    }
+  </script>
+</body>
+</html>
