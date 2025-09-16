@@ -1,1 +1,1 @@
-# DNA-to-music
+# DNA-to-music-converter
